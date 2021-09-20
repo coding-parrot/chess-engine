@@ -1,6 +1,6 @@
 # chess-engine
 
-##Part 1:
+## Part 1:
 
 The chess engine can generate all legal moves for a given position upto an arbitrary depth.
 This includes:
@@ -22,7 +22,7 @@ The moves which are marked illegal are:
 The current move generator takes about 2 minutes to go to a depth of 6 ply. 
 
 
-##Part 2: (In progress) Game Engine
+## Part 2: (In progress) Game Engine
 
 The game engine will use the move generator to select a move. The first version will be using a min-max tree with optimisations to find the best move.
 
@@ -37,7 +37,7 @@ This includes:
 -- parallel alpha-beta
 ```
 
-##Part 3: (Planning phase) Stochastic Chess Engine
+## Part 3: (Planning phase) Stochastic Chess Engine
 
 The second version of the chess engine will use Monte Carlo Tree Search with basic hueristics. 
 
