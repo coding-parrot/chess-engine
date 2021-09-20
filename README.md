@@ -21,6 +21,8 @@ The moves which are marked illegal are:
 
 The current move generator takes about 2 minutes to go to a depth of 6 ply. 
 
+![Chess Move Generator Tests](https://pbs.twimg.com/media/E_n_APbVEAIHYAw?format=jpg&name=large)
+
 
 ## Part 2: Game Engine (In progress)
 
