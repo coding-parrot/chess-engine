@@ -1,6 +1,6 @@
-![Chess Move Generator Tests](https://pbs.twimg.com/media/E_n_APbVEAIHYAw?format=jpg&name=large)
-
 # chess-engine
+
+![Chess Move Generator Tests](https://pbs.twimg.com/media/E_n_APbVEAIHYAw?format=jpg&name=large)
 
 ## Part 1:
 
