@@ -2,7 +2,6 @@ package commons;
 
 import game.Move;
 
-import java.util.List;
 import java.util.Set;
 
 public class LegalMoves {

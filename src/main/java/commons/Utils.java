@@ -6,12 +6,12 @@ import game.Move;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 public class Utils {
     public static LegalMoves getMoves(final Board board,
                                       final int maxDistance,
-                                      final BiFunction<Boolean, Boolean, Boolean> isLegal,
+                                      final BinaryOperator<Boolean> isLegal,
                                       final Piece piece) {
         final Set<Move> moves = new HashSet<>();
         final Set<Move> guards = new HashSet<>();

@@ -1,10 +1,21 @@
 package game;
 
-import commons.*;
+import commons.Color;
+import commons.LegalMoves;
+import commons.Line;
+import commons.Piece;
+import commons.Utils;
 import pieces.Knight;
 import pieces.PieceType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -642,7 +653,7 @@ public class Board {
     //todo: idea: Should we compare a list of positions and choose the best? We do not evaluate positions in isolation,
     // but rather rank them by comparing the top 20 positions possible
     public int evaluation() {
-        if (getLegalMoves().size() == 0) {
+        if (getLegalMoves().isEmpty()) {
             if (inCheck) {
                 return Integer.MIN_VALUE;
             } else {
@@ -752,7 +763,8 @@ public class Board {
         final Line line = new Line(coordinate, king.position);
         if (line.isStraight) {
             for (int index = 1; index < 8; index++) {
-                final int row = king.position.row + index * line.rowDiff, col = king.position.col + index * line.colDiff;
+                final int row = king.position.row + index * line.rowDiff;
+                final int col = king.position.col + index * line.colDiff;
                 if (Utils.withinBoardLimits(row, col)) {
                     if (!isEmpty(row, col)) {
                         final Piece piece = pieces.get(Cell.get(row, col));

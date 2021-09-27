@@ -17,6 +17,18 @@
                     <target>11</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <excludeRoots>
+                        <excludeRoot>target/generated-sources</excludeRoot>
+                        <excludeRoot>target/generated-test-sources</excludeRoot>
+                    </excludeRoots>
+                    <linkXRef>true</linkXRef>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -25,6 +37,11 @@
             <artifactId>junit</artifactId>
             <version>4.13.1</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.googlejavaformat</groupId>
+            <artifactId>google-java-format</artifactId>
+            <version>1.11.0</version>
         </dependency>
     </dependencies>
 

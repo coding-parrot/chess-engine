@@ -1,17 +1,25 @@
 package pieces;
 
-import commons.*;
+import commons.Color;
+import commons.LegalMoves;
+import commons.Line;
+import commons.Piece;
+import commons.Utils;
 import game.Board;
 import game.Cell;
 import game.Move;
 
-import java.util.*;
-import java.util.function.BiFunction;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 public class King {
 
-    public static final BiFunction<Boolean, Boolean, Boolean> movement = (rowStraight, colStraight) -> true;
+    public static final BinaryOperator<Boolean> movement = (rowStraight, colStraight) -> true;
     public static final int MAX_DISTANCE = 1;
 
     public static LegalMoves getMoveList(Board board, Piece piece) {

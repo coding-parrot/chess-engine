@@ -3,9 +3,14 @@ package commons;
 import game.Board;
 import game.Cell;
 import game.Move;
-import pieces.*;
+import pieces.Bishop;
+import pieces.King;
+import pieces.Knight;
+import pieces.Pawn;
+import pieces.PieceType;
+import pieces.Queen;
+import pieces.Rook;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
