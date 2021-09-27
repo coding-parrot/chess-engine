@@ -18,6 +18,28 @@ public class IntenseTest {
     }
 
     @Test
+    public void countMovesAtPosition4MinMax() {
+        Board board = Board.getBoard("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+        board.inCheck = true;
+        System.out.println(board);
+        Engine engine = new Engine();
+        Engine.nodesEvaluated = 0;
+        final Evaluation evaluation = engine.minMax(board, 4, 4);
+        System.out.println(evaluation + " \nNODES: " + Engine.nodesEvaluated);
+    }
+
+    @Test
+    public void countMovesAtPosition4AlphaBeta() {
+        Board board = Board.getBoard("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+        board.inCheck = true;
+        System.out.println(board);
+        Engine engine = new Engine();
+        Engine.nodesEvaluated = 0;
+        final OutCome evaluation = engine.alphaBeta(board, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, 4);
+        System.out.println(evaluation + " \nNODES: " + Engine.nodesEvaluated);
+    }
+
+    @Test
     public void countMovesAtPosition5() {
         Board board = Board.getBoard("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
         System.out.println(board);

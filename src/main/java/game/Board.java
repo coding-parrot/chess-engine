@@ -639,10 +639,14 @@ public class Board {
         return board;
     }
 
+    public double evaluation() {
+        return evaluation(getLegalMoves().size());
+    }
+
     //todo: idea: Should we compare a list of positions and choose the best? We do not evaluate positions in isolation,
     // but rather rank them by comparing the top 20 positions possible
-    public int evaluation() {
-        if (getLegalMoves().size() == 0) {
+    public double evaluation(int availableMoves) {
+        if (availableMoves == 0) {
             if (inCheck) {
                 return Integer.MIN_VALUE;
             } else {
@@ -652,12 +656,12 @@ public class Board {
         if (isDraw()) {
             return 0;
         }
-        return heuristic();
+        return heuristic() + availableMoves / 100.0;
     }
 
     private int heuristic() {
-        return playerPieces.get(Color.WHITE).stream().mapToInt(piece -> approxValue.get(piece.pieceType)).sum()
-                - playerPieces.get(Color.BLACK).stream().mapToInt(piece -> approxValue.get(piece.pieceType)).sum();
+        return playerPieces.get(playerToMove).stream().mapToInt(piece -> approxValue.get(piece.pieceType)).sum()
+                - playerPieces.get(Color.opponent(playerToMove)).stream().mapToInt(piece -> approxValue.get(piece.pieceType)).sum();
     }
 
     public boolean isDraw() {
