@@ -10,7 +10,8 @@ public class Line {
     public final PieceType minorPieceType;
 
     public Line(final Cell first, final Cell second) {
-        final int rowDistance = Math.abs(first.row - second.row), colDistance = Math.abs(first.col - second.col);
+        int rowDistance = Math.abs(first.row - second.row);
+        int colDistance = Math.abs(first.col - second.col);
         isStraight = rowDistance == 0 || colDistance == 0 || rowDistance == colDistance;
         rowDiff = Integer.compare(first.row, second.row);
         colDiff = Integer.compare(first.col, second.col);

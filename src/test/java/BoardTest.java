@@ -43,7 +43,7 @@ public class BoardTest {
         System.out.println(board.getLegalMoves());
         Assert.assertEquals(6, board.getLegalMoves().size());
         Assert.assertFalse(board.isDraw());
-        Assert.assertEquals(-2, board.evaluation(board.getLegalMoves().size()));
+        Assert.assertEquals(-2, board.evaluation(board.getLegalMoves().size()), 0.3);
         board.makeMove(board.getLegalMoves().stream().filter(c -> c.captureMove).findAny().get());
         System.out.println(board);
         System.out.println(board.getLegalMoves());
@@ -64,7 +64,7 @@ public class BoardTest {
         System.out.println(board);
         System.out.println(board.getLegalMoves());
         Assert.assertTrue(board.getLegalMoves().isEmpty());
-        Assert.assertEquals(Integer.MIN_VALUE, board.evaluation(board.getLegalMoves().size()));
+        Assert.assertEquals(Integer.MIN_VALUE, board.evaluation(board.getLegalMoves().size()), 0.0001);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class BoardTest {
         System.out.println(board);
         System.out.println(board.getLegalMoves());
         Assert.assertTrue(board.getLegalMoves().isEmpty());
-        Assert.assertEquals(0, board.evaluation(board.getLegalMoves().size()));
+        Assert.assertEquals(0, board.evaluation(board.getLegalMoves().size()), 0.000001);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class BoardTest {
         System.out.println(board);
         System.out.println(board.getLegalMoves());
         Assert.assertEquals(21, board.getLegalMoves().size());
-        Assert.assertEquals(-1, board.evaluation(board.getLegalMoves().size()));
+        Assert.assertEquals(-1, board.evaluation(board.getLegalMoves().size()), 0.3);
     }
 
     @Test(expected = NoSuchElementException.class)

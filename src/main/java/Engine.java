@@ -3,7 +3,9 @@ import game.Board;
 import game.Move;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +14,7 @@ import java.util.stream.Collectors;
 
 public class Engine {
     public static int nodesEvaluated;
+    public Map<Long, Result> transpositionTable = new HashMap<>();
 
     public int countAllMoves(final Board board, final int depth) {
         return countAllMoves(board, depth, 1000);
@@ -66,43 +69,61 @@ public class Engine {
         final List<Move> legalMoves = board.getLegalMoves();
         nodesEvaluated++;
         if (legalMoves.isEmpty() || depth == 0) {
-            return new OutCome(board, null, -board.evaluation(legalMoves.size()));
+            final double score;
+            if (transpositionTable.containsKey(board.zobristHash)) {
+                score = transpositionTable.get(board.zobristHash).eval;
+            } else {
+                score = board.evaluation(legalMoves.size());
+                transpositionTable.put(board.zobristHash, new Result(score, 0));
+            }
+            return new OutCome(board, null, -score);
         }
         final List<OutCome> outComes = legalMoves.stream().map(move -> {
             final Board changedBoard = board.copy();
             changedBoard.makeMove(move);
-            return new OutCome(changedBoard, move, changedBoard.evaluation());
-        }).sorted(Comparator.comparingDouble(outCome -> -outCome.getScore())).collect(Collectors.toList());
-        OutCome bestMove = null;
+            final double score;
+            if (transpositionTable.containsKey(changedBoard.zobristHash)) {
+                score = transpositionTable.get(changedBoard.zobristHash).eval;
+            } else {
+                score = changedBoard.evaluation(changedBoard.getLegalMoves().size());
+                transpositionTable.put(changedBoard.zobristHash, new Result(score, 0));
+            }
+            return new OutCome(changedBoard, move, score);
+        }).sorted(Comparator.comparingDouble(OutCome::getScore)).collect(Collectors.toList());
+        OutCome bestOutCome = null;
         for (final OutCome outCome : outComes) {
             final OutCome eval = alphaBeta(outCome.getBoard(), depth - 1, alpha, beta, printAt);
             if (depth == printAt) {
                 System.out.println(getString(outCome.getMove()) + ": " + eval.getScore() + " " + outCome +
                         " " + outCome.getBoard().fenRepresentation());
             }
-            if (bestMove == null || bestMove.getScore() > -eval.getScore()) {
-                bestMove = new OutCome(board, outCome.getMove(), -eval.getScore());
-                if (bestMove.getScore() < 0 && bestMove.getScore() + Integer.MAX_VALUE < 0.0001) {
-                    return bestMove;
+            if (bestOutCome == null || bestOutCome.getScore() > -eval.getScore()) {
+                bestOutCome = new OutCome(board, outCome.getMove(), -eval.getScore());
+                if (bestOutCome.getScore() < 0 && bestOutCome.getScore() + Integer.MAX_VALUE < 0.0001) {
+                    return bestOutCome;
                 }
             }
             if (board.playerToMove.equals(Color.WHITE)) {
-                if (alpha < -bestMove.getScore()) {
-                    alpha = -bestMove.getScore();
+                if (alpha < -bestOutCome.getScore()) {
+                    alpha = -bestOutCome.getScore();
                 }
             } else {
-                if (beta > bestMove.getScore()) {
-                    beta = bestMove.getScore();
+                if (beta > bestOutCome.getScore()) {
+                    beta = bestOutCome.getScore();
                 }
             }
-            if (alpha > beta) {
+            if (alpha >= beta) {
                 break;
             }
         }
-        return bestMove;
+        if (!transpositionTable.containsKey(board.zobristHash) || transpositionTable.get(board.zobristHash).depth < depth) {
+            transpositionTable.put(board.zobristHash, new Result(-bestOutCome.getScore(), depth));
+        }
+        return bestOutCome;
     }
 
     public OutCome iterativeDeepening(final Board board, final long time) {
+        transpositionTable = new HashMap<>();
         final long start = System.currentTimeMillis();
         int depth = 1;
         OutCome evaluation = alphaBeta(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, 1000);
@@ -183,26 +204,14 @@ class OutCome {
                 '}';
     }
 }
-/*
 
 
+class Result {
+    final double eval;
+    final int depth;
 
-
-b4g4
-b4h4
-
-
-
-
-
-
-
-
-
-
-
-b4g4
-b4h4
-b4g4
-b4h4
- */
+    public Result(double eval, int depth) {
+        this.eval = eval;
+        this.depth = depth;
+    }
+}

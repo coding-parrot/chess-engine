@@ -24,6 +24,7 @@ public class MinMaxTest {
         System.out.println(board);
         Assert.assertEquals(bestMove.getMove().target, Cell.get(7, 5));
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.ROOK));
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -38,6 +39,7 @@ public class MinMaxTest {
         System.out.println(board);
         Assert.assertEquals(bestMove.getMove().target, Cell.get(5, 5));
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.BISHOP));
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -52,6 +54,7 @@ public class MinMaxTest {
         System.out.println(board);
         Assert.assertEquals(bestMove.getMove().target, Cell.get(7, 5));
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.KING));
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -66,6 +69,7 @@ public class MinMaxTest {
         System.out.println(board);
         Assert.assertEquals(Cell.get(5, 6), bestMove.getMove().target);
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.QUEEN));
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -80,6 +84,7 @@ public class MinMaxTest {
         System.out.println(board);
         Assert.assertEquals(Cell.get(7, 4), bestMove.getMove().target);
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.ROOK));
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -90,6 +95,7 @@ public class MinMaxTest {
         final OutCome bestMove = engine.iterativeDeepening(board, 20);
         System.out.println(bestMove.getMove());
         Assert.assertEquals(Integer.MIN_VALUE, bestMove.getScore(), 0.000001);
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -102,6 +108,7 @@ public class MinMaxTest {
         Assert.assertEquals(Cell.get(6, 5), bestMove.getMove().target);
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.QUEEN));
         Assert.assertEquals(Integer.MIN_VALUE, bestMove.getScore(), 0.000001);
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
 
     @Test
@@ -109,10 +116,34 @@ public class MinMaxTest {
         Board board = Board.getBoard("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0");
         System.out.println(board);
         Engine engine = new Engine();
-        final OutCome bestMove = engine.iterativeDeepening(board, 20);
+        final OutCome bestMove = engine.alphaBeta(board, 7, Integer.MIN_VALUE, Integer.MAX_VALUE, 7);
         System.out.println(bestMove.getMove());
         Assert.assertEquals(Cell.get(7, 3), bestMove.getMove().target);
         Assert.assertTrue(bestMove.getMove().piece.sameType(PieceType.ROOK));
         Assert.assertEquals(Integer.MIN_VALUE, bestMove.getScore(), 0.000001);
+        System.out.println("NODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
     }
+
+    @Test
+    public void countMovesAtPosition4MinMax() {
+        Board board = Board.getBoard("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+        board.inCheck = true;
+        System.out.println(board);
+        Engine engine = new Engine();
+        Engine.nodesEvaluated = 0;
+        final Evaluation evaluation = engine.minMax(board, 4, 4);
+        System.out.println(evaluation + " \nNODES: " + Engine.nodesEvaluated);
+    }
+
+    @Test
+    public void countMovesAtPosition4AlphaBeta() {
+        Board board = Board.getBoard("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+        board.inCheck = true;
+        System.out.println(board);
+        Engine engine = new Engine();
+        Engine.nodesEvaluated = 0;
+        final OutCome evaluation = engine.alphaBeta(board, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, 4);
+        System.out.println(evaluation + " \nNODES: " + Engine.nodesEvaluated + " TRANSPOSITIONS: " + engine.transpositionTable.size());
+    }
+
 }

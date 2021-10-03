@@ -15,15 +15,22 @@ public class Board {
     public final Map<Cell, Set<Move>> moves;
     public final Map<Cell, Set<Move>> guards;
     public final List<Move> moveList;
-    public final Map<String, Integer> positions;
+    private final long[] positions;
+    private int positionIndex;
     public final boolean[][] canCastle;
+    public long zobristHash;
     public Color playerToMove;
     boolean isThreeFoldRepetition;
     int halfMoves;
     boolean fiftyMoveDraw;
     public boolean inCheck;
+    public Move previousMove;
     private final Piece[] kings;
     public static final Map<PieceType, Integer> approxValue = new HashMap<>();
+    private static long[][][] zobrist = new long[6][2][64];
+    private static long zobristSwitchPlayer;
+    public static long[] zobristCastle = new long[4];
+    private static long[] zobristEnpassantFiles = new long[8];
 
     static {
         approxValue.put(PieceType.PAWN, 1);
@@ -32,6 +39,21 @@ public class Board {
         approxValue.put(PieceType.ROOK, 5);
         approxValue.put(PieceType.QUEEN, 9);
         approxValue.put(PieceType.KING, 0);
+        final Random random = new Random();
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k < 64; k++) {
+                    zobrist[i][j][k] = random.nextLong();
+                }
+            }
+        }
+        zobristSwitchPlayer = random.nextLong();
+        for (int i = 0; i < 4; i++) {
+            zobristCastle[i] = random.nextLong();
+        }
+        for (int i = 0; i < 8; i++) {
+            zobristEnpassantFiles[i] = random.nextLong();
+        }
     }
 
     public Board() {
@@ -40,7 +62,8 @@ public class Board {
         guards = new HashMap<>();
         moveList = new ArrayList<>();
         canCastle = new boolean[][]{{true, true}, {true, true}};
-        positions = new HashMap<>();
+        positions = new long[6];
+        positionIndex = 0;
         playerPieces = new HashMap<>();
         playerPieces.put(Color.WHITE, new ArrayList<>());
         playerPieces.put(Color.BLACK, new ArrayList<>());
@@ -119,6 +142,7 @@ public class Board {
         final Piece pawn = Piece.get(color, position, PieceType.PAWN);
         pieces.put(position, pawn);
         playerPieces.get(color).add(pawn);
+        updateHashForAddition(pawn);
     }
 
     public void placeRook(final int row, final int col, final Color color) {
@@ -126,6 +150,7 @@ public class Board {
         final Piece rook = Piece.get(color, position, PieceType.ROOK);
         pieces.put(position, rook);
         playerPieces.get(color).add(rook);
+        updateHashForAddition(rook);
     }
 
     public void placeBishop(final int row, final int col, final Color color) {
@@ -133,6 +158,7 @@ public class Board {
         final Piece bishop = Piece.get(color, position, PieceType.BISHOP);
         pieces.put(position, bishop);
         playerPieces.get(color).add(bishop);
+        updateHashForAddition(bishop);
     }
 
     public void placeQueen(final int row, final int col, final Color color) {
@@ -140,6 +166,7 @@ public class Board {
         final Piece queen = Piece.get(color, position, PieceType.QUEEN);
         pieces.put(position, queen);
         playerPieces.get(color).add(queen);
+        updateHashForAddition(queen);
     }
 
     public void placeKing(final int row, final int col, final Color color) {
@@ -148,6 +175,7 @@ public class Board {
         kings[color.ordinal()] = king;
         pieces.put(position, king);
         playerPieces.get(color).add(king);
+        updateHashForAddition(king);
     }
 
     public void placeKnight(final int row, final int col, final Color color) {
@@ -155,6 +183,7 @@ public class Board {
         final Piece knight = Piece.get(color, position, PieceType.KNIGHT);
         pieces.put(position, knight);
         playerPieces.get(color).add(knight);
+        updateHashForAddition(knight);
     }
 
     public List<Move> getLegalMoves() {
@@ -238,20 +267,13 @@ public class Board {
             final Set<Piece> ignorePawns = new HashSet<>();
             ignorePawns.add(move.piece);
             ignorePawns.add(getPiece(move.captureCell.row, move.captureCell.col));
-
-            final int kingRow = king.position.row, kingCol = king.position.col;
             final Line line = new Line(move.captureCell, king.position);
             if (line.isStraight) {
-                for (int i = 1; i < 8; i++) {
-                    final int row = kingRow + i * line.rowDiff, col = kingCol + i * line.colDiff;
-                    if (Utils.withinBoardLimits(row, col)) {
-                        if (!isEmpty(row, col) && !ignorePawns.contains(getPiece(row, col))) {
-                            final Piece piece = getPiece(row, col);
-                            return piece.color != king.color && (piece.sameType(line.minorPieceType) || piece.sameType(PieceType.QUEEN));
-                        } else if (move.target.equals(Cell.get(row, col))) {
-                            break;
-                        }
-                    } else {
+                for (int row = king.position.row + line.rowDiff, col = king.position.col + line.colDiff; Utils.withinBoardLimits(row, col); row = row + line.rowDiff, col = col + line.colDiff) {
+                    if (!isEmpty(row, col) && !ignorePawns.contains(getPiece(row, col))) {
+                        final Piece piece = getPiece(row, col);
+                        return piece.color != king.color && (piece.sameType(line.minorPieceType) || piece.sameType(PieceType.QUEEN));
+                    } else if (move.target.equals(Cell.get(row, col))) {
                         break;
                     }
                 }
@@ -337,17 +359,12 @@ public class Board {
             for (int colDiff = -1; colDiff <= 1; colDiff++) {
                 if (!(rowDiff == 0 && colDiff == 0) && attackers.size() < 2) {
                     final PieceType type = rowDiff == 0 || colDiff == 0 ? PieceType.ROOK : PieceType.BISHOP;
-                    for (int k = 1; k < 8; k++) {
-                        final int row = kingRow + (rowDiff * k), col = kingCol + (colDiff * k);
-                        if (Utils.withinBoardLimits(row, col)) {
-                            if (!isEmpty(row, col)) {
-                                final Piece piece = getPiece(row, col);
-                                if (piece.color != color && (piece.sameType(PieceType.QUEEN) || piece.sameType(type))) {
-                                    attackers.add(piece);
-                                }
-                                break;
+                    for (int row = kingRow + rowDiff, col = kingCol + colDiff; Utils.withinBoardLimits(row, col); row = row + rowDiff, col = col + colDiff) {
+                        if (!isEmpty(row, col)) {
+                            final Piece piece = getPiece(row, col);
+                            if (piece.color != color && (piece.sameType(PieceType.QUEEN) || piece.sameType(type))) {
+                                attackers.add(piece);
                             }
-                        } else {
                             break;
                         }
                     }
@@ -367,7 +384,7 @@ public class Board {
             }
             for (int i = 0; i < Knight.diff.length && attackers.size() < 2; i++) {
                 final int row = kingRow + Knight.diff[i][0], col = kingCol + Knight.diff[i][1];
-                if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+                if (Utils.withinBoardLimits(row, col)) {
                     final Piece piece = getPiece(row, col);
                     if (piece != null && piece.sameType(PieceType.KNIGHT) && piece.color != king.color) {
                         attackers.add(piece);
@@ -378,16 +395,26 @@ public class Board {
         return attackers;
     }
 
+    private void updateHashForRemove(Piece piece) {
+        zobristHash ^= zobrist[piece.pieceType.ordinal()][piece.color.ordinal()][(piece.position.row << 3) + piece.position.col];
+    }
+
+    private void updateHashForAddition(Piece piece) {
+        zobristHash ^= zobrist[piece.pieceType.ordinal()][piece.color.ordinal()][(piece.position.row << 3) + piece.position.col];
+    }
+
     public void makeMove(Move move) {
         //remove captured pieces
         final Set<Cell> affectedCells = new HashSet<>();
         if (move.captureMove) {
             final Piece delete = pieces.remove(move.captureCell);
             playerPieces.get(Color.opponent(move.piece.color)).remove(delete);
+            updateHashForRemove(delete);
             affectedCells.add(move.captureCell);
         }
         pieces.remove(move.piece.position);
         playerPieces.get(move.piece.color).remove(move.piece);
+        updateHashForRemove(move.piece);
         affectedCells.add(move.piece.position);
         for (final Cell affectedCell : affectedCells) {
             //todo: don't remove all the moves and guards, just the ones affected
@@ -613,6 +640,7 @@ public class Board {
             final Piece changedPiece = Piece.get(move.piece.color, move.target, move.piece.pieceType);
             pieces.put(move.target, changedPiece);
             playerPieces.get(move.piece.color).add(changedPiece);
+            updateHashForAddition(changedPiece);
             if (changedPiece.pieceType == PieceType.KING) {
                 kings[changedPiece.color.ordinal()] = changedPiece;
             }
@@ -625,22 +653,21 @@ public class Board {
         playerPieces.forEach((color, pieces) -> board.playerPieces.put(color, new ArrayList<>(pieces)));
         moves.forEach((cell, moves) -> board.moves.put(cell, new HashSet<>(moves)));
         guards.forEach((cell, moves) -> board.guards.put(cell, new HashSet<>(moves)));
-        positions.forEach(board.positions::put);
+        System.arraycopy(positions, 0, board.positions, 0, positions.length);
+        board.positionIndex = positionIndex;
         board.moveList.addAll(moveList);
         System.arraycopy(kings, 0, board.kings, 0, 2);
         for (int i = 0; i < 2; i++) {
             System.arraycopy(canCastle[i], 0, board.canCastle[i], 0, 2);
         }
+        board.previousMove = previousMove;
+        board.zobristHash = zobristHash;
         board.playerToMove = playerToMove;
         board.isThreeFoldRepetition = isThreeFoldRepetition;
         board.halfMoves = halfMoves;
         board.fiftyMoveDraw = fiftyMoveDraw;
         board.inCheck = inCheck;
         return board;
-    }
-
-    public double evaluation() {
-        return evaluation(getLegalMoves().size());
     }
 
     //todo: idea: Should we compare a list of positions and choose the best? We do not evaluate positions in isolation,
@@ -688,6 +715,14 @@ public class Board {
 
     private void postMoveUpdates(Move move) {
         moveList.add(move);
+        if (move.piece.sameType(PieceType.PAWN) && Math.abs(move.piece.position.row - move.target.row) == 2) {
+            zobristHash ^= zobristEnpassantFiles[move.target.col];
+        }
+        if (previousMove != null && previousMove.piece.sameType(PieceType.PAWN) && Math.abs(previousMove.piece.position.row - previousMove.target.row) == 2) {
+            zobristHash ^= zobristEnpassantFiles[previousMove.target.col];
+        }
+        previousMove = move;
+        zobristHash ^= zobristSwitchPlayer;
         markDraw(move);
         castlingAllowance(move);
         inCheck = lookForChecks(move);
@@ -697,6 +732,12 @@ public class Board {
     private void castlingAllowance(Move move) {
         if (move.piece.sameType(PieceType.KING)) {
             final int color = move.piece.color.ordinal();
+            if (canCastle[color][0]) {
+                zobristHash ^= zobristCastle[color * 2];
+            }
+            if (canCastle[color][1]) {
+                zobristHash ^= zobristCastle[color * 2 + 1];
+            }
             canCastle[color][1] = canCastle[color][0] = false;
             //take castling into account
             if (move.target.row == move.piece.position.row && Math.abs(move.piece.position.col - move.target.col) == 2) {
@@ -714,6 +755,9 @@ public class Board {
                     if (move.piece.position.equals(corner) || (move.captureMove && move.captureCell.equals(corner))) {
                         if (canCastle[i][j]) {
                             if (move.piece.position.equals(Cell.get(i * 7, j * 7))) {
+                                if (canCastle[i][j]) {
+                                    zobristHash ^= zobristCastle[i * 2 + j];
+                                }
                                 canCastle[i][j] = false;
                             }
                         }
@@ -724,11 +768,17 @@ public class Board {
     }
 
     private void markDraw(Move move) {
-        final String id = fenRepresentation();
-        final var frequency = positions.getOrDefault(id, 0);
-        positions.put(id, frequency + 1);
-        if (frequency >= 3) {
-            isThreeFoldRepetition = true;
+        positions[positionIndex % positions.length] = zobristHash;
+        positionIndex++;
+        int frequency = 0;
+        for (final long position : positions) {
+            if (position == zobristHash) {
+                frequency++;
+                if (frequency >= 3) {
+                    isThreeFoldRepetition = true;
+                    break;
+                }
+            }
         }
         if (move.captureMove || move.piece.sameType(PieceType.PAWN)) {
             halfMoves = 0;
@@ -755,15 +805,10 @@ public class Board {
         //knight and pawn can't give discoveries
         final Line line = new Line(coordinate, king.position);
         if (line.isStraight) {
-            for (int index = 1; index < 8; index++) {
-                final int row = king.position.row + index * line.rowDiff, col = king.position.col + index * line.colDiff;
-                if (Utils.withinBoardLimits(row, col)) {
-                    if (!isEmpty(row, col)) {
-                        final Piece piece = pieces.get(Cell.get(row, col));
-                        return piece.color != king.color && (piece.sameType(PieceType.QUEEN) || piece.sameType(line.minorPieceType));
-                    }
-                } else {
-                    break;
+            for (int row = king.position.row + line.rowDiff, col = king.position.col + line.colDiff; Utils.withinBoardLimits(row, col); row = row + line.rowDiff, col = col + line.colDiff) {
+                if (!isEmpty(row, col)) {
+                    final Piece piece = pieces.get(Cell.get(row, col));
+                    return piece.color != king.color && (piece.sameType(PieceType.QUEEN) || piece.sameType(line.minorPieceType));
                 }
             }
         }
@@ -873,16 +918,27 @@ public class Board {
             }
         }
         board.playerToMove = boardFen[1].equals("w") ? Color.WHITE : Color.BLACK;
+        if (board.playerToMove == Color.BLACK) {
+            board.zobristHash ^= zobristSwitchPlayer;
+        }
         board.canCastle[0][1] = boardFen[2].contains("K");
         board.canCastle[0][0] = boardFen[2].contains("Q");
         board.canCastle[1][1] = boardFen[2].contains("k");
         board.canCastle[1][0] = boardFen[2].contains("q");
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                if (!board.canCastle[i][j]) {
+                    board.zobristHash ^= zobristCastle[i * 2 + j];
+                }
+            }
+        }
         if (!boardFen[3].equals("-")) {
             int rowDiff = boardFen[3].charAt(1) == '6' ? -1 : 1;
             final int col = boardFen[3].charAt(0) - 'a';
             final int row = rowDiff == -1 ? 4 : 3;
             final Piece pawn = board.getPiece(row, col);
             board.moveList.add(Move.get(Piece.get(pawn.color, Cell.get(rowDiff == -1 ? 6 : 1, col), PieceType.PAWN), pawn.position, false));
+            board.zobristHash ^= zobristEnpassantFiles[col];
         }
         return board;
     }
