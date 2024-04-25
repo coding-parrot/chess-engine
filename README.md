@@ -30,9 +30,9 @@ The game engine will use the move generator to select a move. The first version 
 
 This includes:
 ```
--- basic hueristic
--- iterative deepening
--- alpha-beta pruning
+-- basic heuristic ✅
+-- iterative deepening ✅
+-- alpha-beta pruning ✅
 -- killer heuristic
 -- quiescence search
 -- null heuristic
